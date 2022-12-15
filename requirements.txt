@@ -1,0 +1,5 @@
+emoji
+aiogram
+numpy
+transformers
+torch
