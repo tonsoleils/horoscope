@@ -1,23 +1,16 @@
-import config
 import logging
 
-from emoji import emojize
-from aiogram import Bot, Dispatcher, executor, types
+from kafkaConsumer import kafkaConsumer
+from kafkaProducer import kafkaProducer
+
 import numpy as np
-import torch
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-from generate import generate_horoscope
+from aiogram import Bot, Dispatcher, executor, types
+from emoji import emojize
+
+import config
 
 # init random seed
 np.random.seed(42)
-torch.manual_seed(42)
-
-# loading tokens and pre-trained model
-tok = GPT2Tokenizer.from_pretrained("models/essays")
-model = GPT2LMHeadModel.from_pretrained("models/essays")
-
-# switching to cpu
-model.cpu()
 
 # logs
 logging.basicConfig(level=logging.INFO)
@@ -25,6 +18,9 @@ logging.basicConfig(level=logging.INFO)
 # Initialization
 bot = Bot(token=config.TOKEN)
 dp = Dispatcher(bot)
+
+con = kafkaConsumer('topic2', 1, 'group1', 'localhost:9092')
+prod = kafkaProducer('localhost:9092', 'topic1')
 
 
 # Processing
@@ -41,6 +37,7 @@ async def start(message: types.Message):
 
 @dp.message_handler(commands=['generate'])
 async def generate_horo(message: types.Message):
+    horoscope = ''
     arguments = message.get_args().split(' ')
     if len(arguments) != 1:
         await message.reply('Напиши /generate <свой знак зодиака>')
@@ -51,8 +48,17 @@ async def generate_horo(message: types.Message):
             await message.answer(f'Ты ввел несуществующий знак зодиака.')
         else:
             await message.answer(f'Твой знак зодиака: {sign}.'
-                                 f'\nГенерирую гороскоп (это может занять некоторое время)')
-            horoscope = generate_horoscope(sign=sign, tok=tok, model=model)
+                                 f'\nГeнepиpyю гороскоп (это может занять некоторое время)')
+            logging.info(f'Pushing sign to kafka: {sign}')
+            prod.push(sign)
+            while True:
+                msg = con.read_from_topic()
+                if msg == 0:
+                    continue
+                else:
+                    print('Going to decode message:: ', msg)
+                    horoscope = msg.decode('utf-8')
+                    break
             await message.answer(f'Твой гороскоп:\n\n{horoscope}')
 
 
