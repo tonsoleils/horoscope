@@ -3,3 +3,5 @@ aiogram
 numpy
 transformers
 torch
+kafka-python
+confluent_kafka
