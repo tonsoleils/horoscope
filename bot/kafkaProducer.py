@@ -1,7 +1,7 @@
 from confluent_kafka import Producer
+from singleton import Singleton
 
-
-class kafkaProducer:
+class kafkaProducer(metaclass=Singleton):
     def __init__(self, broker, topic):
         self.broker = broker
         self.topic = topic

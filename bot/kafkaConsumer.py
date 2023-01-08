@@ -1,8 +1,9 @@
 from confluent_kafka import Consumer, KafkaError
+from singleton import Singleton
 import time
 
 
-class kafkaConsumer:
+class kafkaConsumer(metaclass=Singleton):
     def __init__(self, topic, client_id, group_name, broker, input_db_obj='dummy_obj'):
         self.topic = topic
         self.client_id = client_id
